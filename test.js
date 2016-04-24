@@ -38,7 +38,7 @@ var test2operation = soapService.getOperation('test2');
 test2operation.setOutputType('number');
 test2operation.setInputType('myArg1', {type: 'number'});
 test2operation.setInputType('myArg2', {type: 'number'});
-
+test2operation.addFault('ArgumentOutOfRangeException');
 var test3operation = soapService.getOperation('test3');
 test3operation.setOutputType(MyObject, 'MyObject');
 test3operation.setInputType('intArg', {type: 'number'});
