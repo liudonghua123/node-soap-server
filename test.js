@@ -31,6 +31,10 @@ MyTestService.prototype.test4 = function(myTestObjectInstance){
 	return myTestObjectInstance.strArg + '[' + myTestObjectInstance.intArg + ']';
 };
 
+MyTestService.prototype.test5 = function() {
+	return "000-000-000";
+}
+
 var soapServer = new soap.SoapServer();
 var soapService = soapServer.addService('testService', new MyTestService());
 
