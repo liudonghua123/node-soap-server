@@ -35,7 +35,7 @@ MyTestService.prototype.test5 = function() {
 	return "000-000-000";
 }
 
-var soapServer = new soap.SoapServer();
+var soapServer = new soap.SoapServer({tns: 'KnockKnock.readify.net'});
 var soapService = soapServer.addService('testService', new MyTestService());
 
 var test2operation = soapService.getOperation('test2');
