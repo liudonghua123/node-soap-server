@@ -1,3 +1,15 @@
+## This is a fork!
+
+FYI - this is a fork of node-soap-server by tan-tan-kanarek
+https://github.com/tan-tan-kanarek/node-soap-server
+
+I have made some changes as part of another experiment, mostly to support ES6 classes 
+as operations instead of js prototypes and altered the wsdl generation to be more compatible
+with Microsoft tooling. It is far from perfect however it met my purposes so I will most likely
+not continue. I hope it helps someone!
+
+The rest of this readme is a replica from the original repo.
+
 ---
 soap-server
 ---
