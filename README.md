@@ -1,14 +1,11 @@
 ## This is a fork!
 
-FYI - this is a fork of node-soap-server by tan-tan-kanarek
-https://github.com/tan-tan-kanarek/node-soap-server
+FYI - this is a fork of node-soap-server by rbransby
+[https://github.com/rbransby/node-soap-server](https://github.com/rbransby/node-soap-server)
 
-I have made some changes as part of another experiment, mostly to support ES6 classes 
-as operations instead of js prototypes and altered the wsdl generation to be more compatible
-with Microsoft tooling. It is far from perfect however it met my purposes so I will most likely
-not continue. I hope it helps someone!
+I changed the return result using [Promises/A+](https://github.com/then/promise)
 
-The rest of this readme is a replica from the original repo.
+The rest of this readme is a replica from the original repo and changed to return Promise async style!
 
 ---
 soap-server
@@ -18,298 +15,284 @@ Soap server, using pure javascript for node.js.
 
 ## Simple example
 
-	var soap = require('soap-server');
-	
-	function MyTestService(){
-	}
-	MyTestService.prototype.test1 = function(myArg1, myArg2){
-		return myArg1 + myArg2;
-	};
+```js
+var soap = require('soap-server');
 
-	var soapServer = new soap.SoapServer();
-	var soapService = soapServer.addService('testService', new MyTestService());
-		
-	soapServer.listen(1337, '127.0.0.1');
-	
+function MyTestService(){
+}
+MyTestService.prototype.test1 = function(myArg1, myArg2){
+    return new Promise(function (resolve, reject) {
+        resolve(myArg1 + myArg2);
+    });
+};
+
+var soapServer = new soap.SoapServer();
+var soapService = soapServer.addService('testService', new MyTestService());
+
+soapServer.listen(1337, '127.0.0.1');
+```
+
 The WSDL at http://127.0.0.1:1337/testService?wsdl would be:
 
-	<?xml version="1.0"?>
-	<definitions xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsp="http://www.w3.org/ns/ws-policy" xmlns:wsp1_2="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:tns="http://server.soap.com/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns="http://schemas.xmlsoap.org/wsdl/" targetNamespace="http://server.soap.com/" name="testServiceService">
-		<types>
-			<xsd:schema version="1.0" targetNamespace="http://server.soap.com/">
-				<xsd:element name="MyObject" type="tns:MyObject"/>
-				<xsd:complexType name="MyObject">
-					<xsd:sequence>
-						<xsd:element name="concated" type="xsd:string" minOccurs="0"/>
-						<xsd:element name="incremented" type="xsd:int" minOccurs="0"/>
-					</xsd:sequence>
-				</xsd:complexType>
-				<xsd:element name="MyTestObject" type="tns:MyTestObject"/>
-				<xsd:complexType name="MyTestObject">
-					<xsd:sequence>
-						<xsd:element name="strArg" type="xsd:string" minOccurs="0"/>
-						<xsd:element name="intArg" type="xsd:int" minOccurs="0"/>
-					</xsd:sequence>
-				</xsd:complexType>
-			</xsd:schema>
-		</types>
-		<message name="test1">
-			<part name="myArg1" element="xsd:string"/>
-			<part name="myArg2" element="xsd:string"/>
-		</message>
-		<message name="test1Response">
-			<part name="return" element="xsd:string"/>
-		</message>
-		<portType name="testService">
-			<operation name="test1">
-				<input wsam:Action="test1" message="tns:test1"/>
-				<output wsam:Action="http://server.soap.com/testService/test1Response" message="tns:test1Response"/>
-			</operation>
-		</portType>
-		<binding name="testServicePortBinding" type="tns:testService">
-			<soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc"/>
-			<operation name="test1">
-				<soap:operation soapAction="test1"/>
-				<input name="test1">
-					<soap:body use="literal"/>
-				</input>
-				<output name="test1Response">
-					<soap:body use="literal"/>
-				</output>
-			</operation>
-		</binding>
-		<service name="testServiceService">
-			<port name="testServicePort" binding="tns:testServicePortBinding">
-				<soap:address location="http://127.0.0.1:1337/testService"/>
-			</port>
-		</service>
-	</definitions>
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://server.soap.com/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://server.soap.com/" name="testService">
+    <types>
+        <xsd:schema version="1.0" targetNamespace="http://server.soap.com/" />
+    </types>
+    <message name="test1">
+        <part name="myArg1" type="xsd:string" />
+        <part name="myArg2" type="xsd:string" />
+    </message>
+    <message name="test1Response">
+        <part name="test1Result" type="xsd:string" />
+    </message>
+    <portType name="testService_PortType">
+        <operation name="test1">
+            <input message="tns:test1" />
+            <output message="tns:test1Response" />
+        </operation>
+    </portType>
+    <binding name="testService_Binding" type="tns:testService_PortType">
+        <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http" />
+        <operation name="test1">
+            <soap:operation soapAction="test1" />
+            <input>
+                <soap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:examples:testService" use="encoded" />
+            </input>
+            <output>
+                <soap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:examples:testService" use="encoded" />
+            </output>
+        </operation>
+    </binding>
+    <service name="testService">
+        <port name="testService_Port" binding="tns:testService_Binding">
+            <soap:address location="http://127.0.0.1:1337/testService" />
+        </port>
+    </service>
+</definitions>
+```
 
-## Forcing arguments and returned types	
-	
-	function MyTestService(){
-	}
-	MyTestService.prototype.test2 = function(myArg1, myArg2){
-		return myArg1 + myArg2;
-	};
-	
-	var soapServer = new soap.SoapServer();
-	var soapService = soapServer.addService('testService', new MyTestService());
-	
-	var test2operation = soapService.getOperation('test2');
-	test2operation.setOutputType('number');
-	test2operation.setInputType('myArg1', {type: 'number'});
-	test2operation.setInputType('myArg2', {type: 'number'});
-	
-	soapServer.listen(1337, '127.0.0.1');
-	    
+## Forcing arguments and returned types
+
+```js
+var soap = require('soap-server');
+
+function MyTestService(){
+}
+MyTestService.prototype.test2 = function(myArg1, myArg2){
+    return new Promise(function (resolve, reject) {
+        resolve(myArg1 + myArg2);
+    });
+};
+
+var soapServer = new soap.SoapServer();
+var soapService = soapServer.addService('testService', new MyTestService());
+
+var test2operation = soapService.getOperation('test2');
+test2operation.setOutputType('number');
+test2operation.setInputType('myArg1', {type: 'number'});
+test2operation.setInputType('myArg2', {type: 'number'});
+
+soapServer.listen(1337, '127.0.0.1');
+```
+
 The WSDL at http://127.0.0.1:1337/testService?wsdl would be:
-	    	
-	<?xml version="1.0"?>
-	<definitions xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsp="http://www.w3.org/ns/ws-policy" xmlns:wsp1_2="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:tns="http://server.soap.com/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns="http://schemas.xmlsoap.org/wsdl/" targetNamespace="http://server.soap.com/" name="testServiceService">
-		<types>
-			<xsd:schema version="1.0" targetNamespace="http://server.soap.com/">
-				<xsd:element name="MyObject" type="tns:MyObject"/>
-				<xsd:complexType name="MyObject">
-					<xsd:sequence>
-						<xsd:element name="concated" type="xsd:string" minOccurs="0"/>
-						<xsd:element name="incremented" type="xsd:int" minOccurs="0"/>
-					</xsd:sequence>
-				</xsd:complexType>
-				<xsd:element name="MyTestObject" type="tns:MyTestObject"/>
-				<xsd:complexType name="MyTestObject">
-					<xsd:sequence>
-						<xsd:element name="strArg" type="xsd:string" minOccurs="0"/>
-						<xsd:element name="intArg" type="xsd:int" minOccurs="0"/>
-					</xsd:sequence>
-				</xsd:complexType>
-			</xsd:schema>
-		</types>
-		<message name="test2">
-			<part name="myArg1" element="xsd:int"/>
-			<part name="myArg2" element="xsd:int"/>
-		</message>
-		<message name="test2Response">
-			<part name="return" element="xsd:int"/>
-		</message>
-		<portType name="testService">
-			<operation name="test2">
-				<input wsam:Action="test2" message="tns:test2"/>
-				<output wsam:Action="http://server.soap.com/testService/test2Response" message="tns:test2Response"/>
-			</operation>
-		</portType>
-		<binding name="testServicePortBinding" type="tns:testService">
-			<soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc"/>
-			<operation name="test2">
-				<soap:operation soapAction="test2"/>
-				<input name="test2">
-					<soap:body use="literal"/>
-				</input>
-				<output name="test2Response">
-					<soap:body use="literal"/>
-				</output>
-			</operation>
-		</binding>
-		<service name="testServiceService">
-			<port name="testServicePort" binding="tns:testServicePortBinding">
-				<soap:address location="http://127.0.0.1:1337/testService"/>
-			</port>
-		</service>
-	</definitions>
-	    
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://server.soap.com/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://server.soap.com/" name="testService">
+    <types>
+        <xsd:schema version="1.0" targetNamespace="http://server.soap.com/" />
+    </types>
+    <message name="test2">
+        <part name="myArg1" type="xsd:int" />
+        <part name="myArg2" type="xsd:int" />
+    </message>
+    <message name="test2Response">
+        <part name="test2Result" type="xsd:int" />
+    </message>
+    <portType name="testService_PortType">
+        <operation name="test2">
+            <input message="tns:test2" />
+            <output message="tns:test2Response" />
+        </operation>
+    </portType>
+    <binding name="testService_Binding" type="tns:testService_PortType">
+        <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http" />
+        <operation name="test2">
+            <soap:operation soapAction="test2" />
+            <input>
+                <soap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:examples:testService" use="encoded" />
+            </input>
+            <output>
+                <soap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:examples:testService" use="encoded" />
+            </output>
+        </operation>
+    </binding>
+    <service name="testService">
+        <port name="testService_Port" binding="tns:testService_Binding">
+            <soap:address location="http://127.0.0.1:1337/testService" />
+        </port>
+    </service>
+</definitions>
+```
+
 ## Object type response
 
-	function MyObject(){
-	}
-	MyObject.prototype.concated = '';
-	MyObject.prototype.incremented = 0;
-	
-	function MyTestService(){
-	}
-	MyTestService.prototype.test3 = function(strArg, intArg){
-		var ret = new MyObject();
-		ret.concated = strArg + '[' + intArg + ']';
-		ret.incremented = intArg + 1;
-		return ret;
-	};
-	
-	var soapServer = new soap.SoapServer();
-	var soapService = soapServer.addService('testService', new MyTestService());
-	
-	var test3operation = soapService.getOperation('test3');
-	test3operation.setOutputType(MyObject, 'MyObject');
-	test3operation.setInputType('intArg', {type: 'number'});
-	
-	soapServer.listen(1337, '127.0.0.1');
-	
+```js
+var soap = require('soap-server');
+
+function MyObject(){
+}
+MyObject.prototype.concated = '';
+MyObject.prototype.incremented = 0;
+
+function MyTestService(){
+}
+MyTestService.prototype.test3 = function(strArg, intArg){
+    return new Promise(function (resolve, reject) {
+        var ret = new MyObject();
+        ret.concated = strArg + '[' + intArg + ']';
+        ret.incremented = intArg + 1;
+        resolve(ret);
+    });
+};
+
+var soapServer = new soap.SoapServer();
+var soapService = soapServer.addService('testService', new MyTestService());
+
+var test3operation = soapService.getOperation('test3');
+test3operation.setOutputType(MyObject, 'MyObject');
+test3operation.setInputType('intArg', {type: 'number'});
+
+soapServer.listen(1337, '127.0.0.1');
+```
+
 The WSDL at http://127.0.0.1:1337/testService?wsdl would be:
 
-	<?xml version="1.0"?>
-	<definitions xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsp="http://www.w3.org/ns/ws-policy" xmlns:wsp1_2="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:tns="http://server.soap.com/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns="http://schemas.xmlsoap.org/wsdl/" targetNamespace="http://server.soap.com/" name="testServiceService">
-		<types>
-			<xsd:schema version="1.0" targetNamespace="http://server.soap.com/">
-				<xsd:element name="MyObject" type="tns:MyObject"/>
-				<xsd:complexType name="MyObject">
-					<xsd:sequence>
-						<xsd:element name="concated" type="xsd:string" minOccurs="0"/>
-						<xsd:element name="incremented" type="xsd:int" minOccurs="0"/>
-					</xsd:sequence>
-				</xsd:complexType>
-				<xsd:element name="MyTestObject" type="tns:MyTestObject"/>
-				<xsd:complexType name="MyTestObject">
-					<xsd:sequence>
-						<xsd:element name="strArg" type="xsd:string" minOccurs="0"/>
-						<xsd:element name="intArg" type="xsd:int" minOccurs="0"/>
-					</xsd:sequence>
-				</xsd:complexType>
-			</xsd:schema>
-		</types>
-		<message name="test2Response">
-			<part name="return" element="xsd:int"/>
-		</message>
-		<message name="test3">
-			<part name="strArg" element="xsd:string"/>
-			<part name="intArg" element="xsd:int"/>
-		</message>
-		<message name="test3Response">
-			<part name="return" element="tns:MyObject"/>
-		</messag
-		<portType name="testService">
-			<operation name="test3">
-				<input wsam:Action="test3" message="tns:test3"/>
-				<output wsam:Action="http://server.soap.com/testService/test3Response" message="tns:test3Response"/>
-			</operation>
-		</portType>
-		<binding name="testServicePortBinding" type="tns:testService">
-			<soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc"/>
-			<operation name="test3">
-				<soap:operation soapAction="test3"/>
-				<input name="test3">
-					<soap:body use="literal"/>
-				</input>
-				<output name="test3Response">
-					<soap:body use="literal"/>
-				</output>
-			</operation>
-		</binding>
-		<service name="testServiceService">
-			<port name="testServicePort" binding="tns:testServicePortBinding">
-				<soap:address location="http://127.0.0.1:1337/testService"/>
-			</port>
-		</service>
-	</definitions>
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://server.soap.com/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://server.soap.com/" name="testService">
+    <types>
+        <xsd:schema version="1.0" targetNamespace="http://server.soap.com/">
+            <xsd:element name="MyObject" type="tns:MyObject">
+                <xsd:complexType name="MyObject">
+                    <xsd:sequence>
+                        <xsd:element name="concated" type="xsd:string" minOccurs="0" />
+                        <xsd:element name="incremented" type="xsd:int" minOccurs="0" />
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:schema>
+    </types>
+    <message name="test3">
+        <part name="strArg" type="xsd:string" />
+        <part name="intArg" type="xsd:int" />
+    </message>
+    <message name="test3Response">
+        <part name="test3Result" type="tns:MyObject" />
+    </message>
+    <portType name="testService_PortType">
+        <operation name="test3">
+            <input message="tns:test3" />
+            <output message="tns:test3Response" />
+        </operation>
+    </portType>
+    <binding name="testService_Binding" type="tns:testService_PortType">
+        <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http" />
+        <operation name="test3">
+            <soap:operation soapAction="test3" />
+            <input>
+                <soap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:examples:testService" use="encoded" />
+            </input>
+            <output>
+                <soap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:examples:testService" use="encoded" />
+            </output>
+        </operation>
+    </binding>
+    <service name="testService">
+        <port name="testService_Port" binding="tns:testService_Binding">
+            <soap:address location="http://127.0.0.1:1337/testService" />
+        </port>
+    </service>
+</definitions>
+```
 
 ## Object type request
 
-	function MyTestObject(){
-	}
-	MyTestObject.prototype.strArg = '';
-	MyTestObject.prototype.intArg = 0;
-	
-	function MyTestService(){
-	}
-	MyTestService.prototype.test4 = function(myTestObjectInstance){
-		return myTestObjectInstance.strArg + '[' + myTestObjectInstance.intArg + ']';
-	};
-	
-	var soapServer = new soap.SoapServer();
-	var soapService = soapServer.addService('testService', new MyTestService());
-	
-	var test4operation = soapService.getOperation('test4');
-	test4operation.setInputType('myTestObjectInstance', MyTestObject);
-	
-	
-	soapServer.listen(1337, '127.0.0.1');
-	    
+```js
+var soap = require('soap-server');
+
+var soap = require('soap-server');
+
+function MyTestObject(){
+}
+MyTestObject.prototype.strArg = '';
+MyTestObject.prototype.intArg = 0;
+
+function MyTestService(){
+}
+MyTestService.prototype.test4 = function(myTestObjectInstance){
+    return new Promise(function (resolve, reject) {
+        resolve(myTestObjectInstance.strArg + '[' + myTestObjectInstance.intArg + ']');
+    });
+};
+
+var soapServer = new soap.SoapServer();
+var soapService = soapServer.addService('testService', new MyTestService());
+
+var test4operation = soapService.getOperation('test4');
+test4operation.setInputType('myTestObjectInstance', MyTestObject);
+
+soapServer.listen(1337, '127.0.0.1');
+```
+
 The WSDL at http://127.0.0.1:1337/testService?wsdl would be:
 
-	<?xml version="1.0"?>
-	<definitions xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsp="http://www.w3.org/ns/ws-policy" xmlns:wsp1_2="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:tns="http://server.soap.com/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns="http://schemas.xmlsoap.org/wsdl/" targetNamespace="http://server.soap.com/" name="testServiceService">
-		<types>
-			<xsd:schema version="1.0" targetNamespace="http://server.soap.com/">
-				<xsd:element name="MyObject" type="tns:MyObject"/>
-				<xsd:complexType name="MyObject">
-					<xsd:sequence>
-						<xsd:element name="concated" type="xsd:string" minOccurs="0"/>
-						<xsd:element name="incremented" type="xsd:int" minOccurs="0"/>
-					</xsd:sequence>
-				</xsd:complexType>
-				<xsd:element name="MyTestObject" type="tns:MyTestObject"/>
-				<xsd:complexType name="MyTestObject">
-					<xsd:sequence>
-						<xsd:element name="strArg" type="xsd:string" minOccurs="0"/>
-						<xsd:element name="intArg" type="xsd:int" minOccurs="0"/>
-					</xsd:sequence>
-				</xsd:complexType>
-			</xsd:schema>
-		</types>
-		<message name="test4">
-			<part name="myTestObjectInstance" element="tns:MyTestObject"/>
-		</message>
-		<message name="test4Response">
-			<part name="return" element="xsd:string"/>
-		</message>
-		<portType name="testService">
-			<operation name="test4">
-				<input wsam:Action="test4" message="tns:test4"/>
-				<output wsam:Action="http://server.soap.com/testService/test4Response" message="tns:test4Response"/>
-			</operation>
-		</portType>
-		<binding name="testServicePortBinding" type="tns:testService">
-			<soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc"/>
-			<operation name="test4">
-				<soap:operation soapAction="test4"/>
-				<input name="test4">
-					<soap:body use="literal"/>
-				</input>
-				<output name="test4Response">
-					<soap:body use="literal"/>
-				</output>
-			</operation>
-		</binding>
-		<service name="testServiceService">
-			<port name="testServicePort" binding="tns:testServicePortBinding">
-				<soap:address location="http://127.0.0.1:1337/testService"/>
-			</port>
-		</service>
-	</definitions>
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://server.soap.com/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://server.soap.com/" name="testService">
+    <types>
+        <xsd:schema version="1.0" targetNamespace="http://server.soap.com/">
+            <xsd:element name="MyTestObject" type="tns:MyTestObject">
+                <xsd:complexType name="MyTestObject">
+                    <xsd:sequence>
+                        <xsd:element name="strArg" type="xsd:string" minOccurs="0" />
+                        <xsd:element name="intArg" type="xsd:int" minOccurs="0" />
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:schema>
+    </types>
+    <message name="test4">
+        <part name="myTestObjectInstance" type="tns:MyTestObject" />
+    </message>
+    <message name="test4Response">
+        <part name="test4Result" type="xsd:string" />
+    </message>
+    <portType name="testService_PortType">
+        <operation name="test4">
+            <input message="tns:test4" />
+            <output message="tns:test4Response" />
+        </operation>
+    </portType>
+    <binding name="testService_Binding" type="tns:testService_PortType">
+        <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http" />
+        <operation name="test4">
+            <soap:operation soapAction="test4" />
+            <input>
+                <soap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:examples:testService" use="encoded" />
+            </input>
+            <output>
+                <soap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:examples:testService" use="encoded" />
+            </output>
+        </operation>
+    </binding>
+    <service name="testService">
+        <port name="testService_Port" binding="tns:testService_Binding">
+            <soap:address location="http://127.0.0.1:1337/testService" />
+        </port>
+    </service>
+</definitions>
+```

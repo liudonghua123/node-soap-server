@@ -1,6 +1,6 @@
 
 var soap = require('./lib/soap-server');
-
+var Promise = require('promise');
 
 function MyTestObject(){
 }
@@ -16,23 +16,33 @@ MyObject.prototype.incremented = 0;
 function MyTestService(){
 }
 MyTestService.prototype.test1 = function(myArg1, myArg2){
-	return myArg1 + myArg2;
+	return new Promise(function (resolve, reject) {
+		resolve(myArg1 + myArg2);
+	});
 };
 MyTestService.prototype.test2 = function(myArg1, myArg2){
-	return myArg1 + myArg2;
+	return new Promise(function (resolve, reject) {
+		resolve(myArg1 + myArg2);
+	});
 };
 MyTestService.prototype.test3 = function(strArg, intArg){
-	var ret = new MyObject();
-	ret.concated = strArg + '[' + intArg + ']';
-	ret.incremented = intArg + 1;
-	return ret;
+	return new Promise(function (resolve, reject) {
+		var ret = new MyObject();
+		ret.concated = strArg + '[' + intArg + ']';
+		ret.incremented = intArg + 1;
+		resolve(ret);
+	});
 };
 MyTestService.prototype.test4 = function(myTestObjectInstance){
-	return myTestObjectInstance.strArg + '[' + myTestObjectInstance.intArg + ']';
+	return new Promise(function (resolve, reject) {
+		resolve(myTestObjectInstance.strArg + '[' + myTestObjectInstance.intArg + ']');
+	});
 };
 
 MyTestService.prototype.test5 = function() {
-	return "000-000-000";
+	return new Promise(function (resolve, reject) {
+		resolve("000-000-000");
+	});
 }
 
 var soapServer = new soap.SoapServer({tns: 'KnockKnock.readify.net'});
